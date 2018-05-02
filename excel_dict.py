@@ -70,18 +70,21 @@ def read_sheet(book, sheet, *, start_row=1, col_names = None, has_headers=True, 
     return p_views
 
 
-def rewrite_multi_sheet(sheets, out_file_name, extension='.xlsx', wo=False):
+def rewrite_sheets(sheets, out_file_name, extension='.xlsx', wo=True):
     """Provide dict of 'sheet_name: list of rows' and file name, write multiple sheets to new workbook file"""
     if '.' in out_file_name:
         out_file_name = extension[:extension.find('.')]
     wb = openpyxl.Workbook(write_only=wo)
     # will include a blank sheet for sheets without a 'page view' list
+    logger.debug('writing to workbook')
 
     if wo:
         for sheet in sheets:
             ws = wb.create_sheet(str(sheet))
             page_views = sheets[sheet]
             if len(page_views) > 0:
+                # Note this could cause omissions if row given as start is 'narrower' than
+                # others -- i.e. doesn't have all the fields
                 ws.append([k for k in page_views[0].keys()])
                 for view in page_views:
                     ws.append((str(view[k]) for k in view))
@@ -123,42 +126,42 @@ def rewrite_multi_sheet(sheets, out_file_name, extension='.xlsx', wo=False):
         logger.debug('written to workbook, incremented  ' + str(counter) + ' for PermissionError, ' + out_file_name)
 
 
-def rewrite_page_views(page_views, out_file_name, extension = '.xlsx'):
+def rewrite_single_sheet(page_views, out_file_name, extension='.xlsx', wo=True):
     """Create and save new workbook with one sheet with the processed page view rows"""
-    if '.' in out_file_name:
-        out_file_name = extension[:extension.find('.')]
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    logger.debug('writing to workbook')
 
-    # Get an item from which to extract the field names (dict keys)
-    # BUT NOTE this will break w/ key errors if items don't all have same number of fields
-    # pondering value of adding check for that
-    first_item = page_views[0]
-    col_names = list(first_item.keys())
-    out_row = 1
-    # Build header row
-    for col_num, col_name in enumerate(col_names):
-        ws[get_column_letter(col_num + 1) + str(out_row)].value = col_name
+    sheets = {'Sheet1': page_views}
+    rewrite_sheets(sheets, out_file_name, extension=extension, wo=wo)
 
-    # Process all page views from all sessions
-    out_row = 2
-
-    for view in page_views:
-        for col_num, col_name in enumerate(col_names):
-            ws[get_column_letter(col_num + 1) + str(out_row)].value = str(view[col_name])
-        out_row += 1
-    saved = 0
-    counter = 0
-    while saved == 0:
-        try:
-            if counter > 0:
-                increment = str(counter)
-            else:
-                increment = ''
-            wb.save(out_file_name + increment + extension)
-            logger.info('written to workbook ' + out_file_name + increment)
-            saved = 1
-        except PermissionError:
-            counter +=1
-            logger.info('incrementing ' + str(counter) + ' for PermissionError ' + out_file_name)
+    # logger.debug('writing to workbook')
+    #
+    # # Get an item from which to extract the field names (dict keys)
+    # # BUT NOTE this will break w/ key errors if items don't all have same number of fields
+    # # pondering value of adding check for that
+    # first_item = page_views[0]
+    # col_names = list(first_item.keys())
+    # out_row = 1
+    # # Build header row
+    # for col_num, col_name in enumerate(col_names):
+    #     ws[get_column_letter(col_num + 1) + str(out_row)].value = col_name
+    #
+    # # Process all page views from all sessions
+    # out_row = 2
+    #
+    # for view in page_views:
+    #     for col_num, col_name in enumerate(col_names):
+    #         ws[get_column_letter(col_num + 1) + str(out_row)].value = str(view[col_name])
+    #     out_row += 1
+    # saved = 0
+    # counter = 0
+    # while saved == 0:
+    #     try:
+    #         if counter > 0:
+    #             increment = str(counter)
+    #         else:
+    #             increment = ''
+    #         wb.save(out_file_name + increment + extension)
+    #         logger.info('written to workbook ' + out_file_name + increment)
+    #         saved = 1
+    #     except PermissionError:
+    #         counter +=1
+    #         logger.info('incrementing ' + str(counter) + ' for PermissionError ' + out_file_name)

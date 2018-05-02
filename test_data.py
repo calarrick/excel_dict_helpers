@@ -46,16 +46,16 @@ print('hello')
 # logging.debug(page_views)
 
 page_views_6 = excel_dict.read_sheet(workbook_name, sheet_name, start_row=4, ro=True, has_headers=False)
-excel_dict.rewrite_page_views(page_views_6, 'test_out_6')
+excel_dict.rewrite_single_sheet(page_views_6, 'test_out_6')
 
 page_views_a = excel_dict.read_sheet(workbook_name, sheet_name, start_row=4, ro=True)
 logging.debug(page_views_a)
 sheets_a = {'a': page_views_a}
 #
 #
-print('not write-only', timeit.repeat("excel_dict.rewrite_multi_sheet(sheets_a, 'test_out_def', wo=False)",
+print('not write-only', timeit.repeat("excel_dict.rewrite_sheets(sheets_a, 'test_out_def', wo=False)",
                     globals=globals(), repeat=3, number=100))
-print('write only', timeit.repeat("excel_dict.rewrite_multi_sheet(sheets_a, 'test_out_abc', wo=True)",
+print('write only', timeit.repeat("excel_dict.rewrite_sheets(sheets_a, 'test_out_abc', wo=True)",
                     globals=globals(), repeat=3, number=100))
 #
 #
@@ -106,11 +106,11 @@ page_views_4 = excel_dict.read_sheet(workbook_name, sheet_name, start_row=starti
 # logging.debug(page_views)
 # excel_dict.rewrite_page_views(page_views, 'Book1out')
 #
-# page_views = excel_dict.read_sheet('Book1.xlsx','owssvr', data_only=False)
+page_views = excel_dict.read_sheet('Book1.xlsx','owssvr', data_only=False)
 # logging.debug(page_views)
-# excel_dict.rewrite_page_views(page_views, 'Book1out2')
+excel_dict.rewrite_single_sheet(page_views, 'Book1out2')
 #
-# excel_dict.rewrite_multi_sheet(sheets,'test_out_4')
+# excel_dict.rewrite_sheets(sheets,'test_out_4')
 
 page_views_5 = excel_dict.read_sheet(workbook_name, sheet_name, start_row=4, ro=True)
 logging.debug(page_views_5)
@@ -123,8 +123,8 @@ sheets2 = {
     1: page_views_1,
     2: page_views_5
 }
-excel_dict.rewrite_page_views(page_views_5, 'test_out_5')
-excel_dict.rewrite_multi_sheet(sheets2, 'test_out_1')
+excel_dict.rewrite_single_sheet(page_views_5, 'test_out_5')
+excel_dict.rewrite_sheets(sheets2, 'test_out_1')
 sheets3 = {
     '1': page_views_3,
     '2': page_views_4
@@ -133,22 +133,22 @@ sheets4 = {
     '1': page_views_5
 }
 
-excel_dict.rewrite_multi_sheet(sheets3, 'test_out_123456')
+excel_dict.rewrite_sheets(sheets3, 'test_out_123456')
 logging.info('versions match ' + str(page_views_1 == page_views_5))
 logging.info('versions match ' + str(page_views_3 == page_views_4))
 
 
-print('read_sheet, read-only, headers',
-      timeit.repeat("excel_dict.read_sheet(workbook_name, sheet_name, start_row=4, ro=True)",
-                    repeat=3, number=100, globals=globals()))
-
-print('read_sheet, read-only, no headers',
-      timeit.repeat("excel_dict.read_sheet(workbook_name, sheet_name, start_row=4, ro=True, has_headers=False)",
-                    repeat=3, number=100, globals=globals()))
-
-print('read sheet, not read-only',
-      timeit.repeat('excel_dict.read_sheet(workbook_name, sheet_name, start_row=4, ro=False)',
-                    repeat=3, number=100, globals=globals()))
+# print('read_sheet, read-only, headers',
+#       timeit.repeat("excel_dict.read_sheet(workbook_name, sheet_name, start_row=4, ro=True)",
+#                     repeat=3, number=100, globals=globals()))
+#
+# print('read_sheet, read-only, no headers',
+#       timeit.repeat("excel_dict.read_sheet(workbook_name, sheet_name, start_row=4, ro=True, has_headers=False)",
+#                     repeat=3, number=100, globals=globals()))
+#
+# print('read sheet, not read-only',
+#       timeit.repeat('excel_dict.read_sheet(workbook_name, sheet_name, start_row=4, ro=False)',
+#                     repeat=3, number=100, globals=globals()))
 
 # print('rewrite multi sheet (w one item dict)',
 #       timeit.repeat("excel_dict.rewrite_multi_sheet(sheets4, 'test_out_1')",
