@@ -45,12 +45,21 @@ print('hello')
 # page_views = excel_dict.read_sheet(workbook_name, sheet_name, start_row = 4, has_headers=False)
 # logging.debug(page_views)
 
+
+
 page_views_6 = excel_dict.read_sheet(workbook_name, sheet_name, start_row=4, ro=True, has_headers=False)
 excel_dict.rewrite_single_sheet(page_views_6, 'test_out_6')
+
+page_views_7 = excel_dict.read_sheet('Copy of West 12-14.xlsx', 'West 12-14')
+excel_dict.rewrite_single_sheet(page_views_7, 'test_out_7')
 
 page_views_a = excel_dict.read_sheet(workbook_name, sheet_name, start_row=4, ro=True)
 logging.debug(page_views_a)
 sheets_a = {'a': page_views_a}
+
+page_views_z = excel_dict.read_sheet(workbook_name, sheet=None, start_row=4, ro=True)
+logging.debug(page_views_a)
+print('hi again')
 #
 #
 print('not write-only', timeit.repeat("excel_dict.rewrite_sheets(sheets_a, 'test_out_def', wo=False)",

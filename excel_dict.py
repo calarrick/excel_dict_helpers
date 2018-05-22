@@ -6,7 +6,8 @@ from itertools import islice
 logger = logging.getLogger(__name__)
 
 
-def read_sheet(book, sheet, *, start_row=1, col_names = None, has_headers=True, data_only=True, ro=True):
+def read_sheet(book, sheet, *, start_row=1, col_names = None,
+               has_headers=True, data_only=True, ro=True):
     """"
     Args are the workbook file name and sheet name (as positional arguments, and strings). Optional
     keyword arguments to specify a starting row (col_names, default is 1), select columns to
@@ -26,11 +27,30 @@ def read_sheet(book, sheet, *, start_row=1, col_names = None, has_headers=True, 
     logger.debug('loading from workbook')
     wb = openpyxl.load_workbook(filename=book, data_only=data_only, read_only=ro)
     logger.debug('processing workbook object')
-    sheet = wb[sheet]
+    if not sheet:
+        sheet = wb[wb.sheetnames[0]]
+    else:
+        sheet = wb[sheet]
     p_views = []
     letters = []
     headings = []
-    import lxml
+    numbers = set()
+
+    with open('client-matter.txt') as f:
+        for line in f:
+            try:
+                numbers.add(float(line))
+            except ValueError:
+                continue
+
+    def check_cm(x, cm):
+        if isinstance(cm, float):
+            if ('client' or 'matter' or 'account') in x.lower():
+                cm = str(cm)
+            elif cm in numbers:
+                cm = str(cm)
+
+        return cm
 
     if ro and has_headers:
         for num, row in enumerate(sheet.rows):
@@ -39,7 +59,8 @@ def read_sheet(book, sheet, *, start_row=1, col_names = None, has_headers=True, 
                 #     headings.append(cell.value)
                 headings = [h.value for h in row]
             if num >= start_row:
-                p_view = {headings[x]: row[x].value for x in range(sheet.min_column-1, sheet.max_column)}
+                #p_view = {headings[x]: row[x].value for x in range(sheet.min_column-1, sheet.max_column)}
+                p_view = {headings[x]: check_cm(headings[x], row[x].value) for x in range(sheet.min_column-1, sheet.max_column)}
                 p_views.append(p_view)
     elif ro:
         for row in islice(sheet.rows, start_row, sheet.max_row):
@@ -67,6 +88,12 @@ def read_sheet(book, sheet, *, start_row=1, col_names = None, has_headers=True, 
                 p_view[col_contents] = sheet[str(col_lett) + str(row)].value
             p_views.append(p_view)
         logger.debug('workbook and sheet loaded')
+
+    if check_cm:
+        for entry in p_views:
+            for k in entry:
+                entry[k] = check_cm(k, entry[k])
+
     return p_views
 
 
@@ -76,18 +103,20 @@ def rewrite_sheets(sheets, out_file_name, extension='.xlsx', wo=True):
         out_file_name = extension[:extension.find('.')]
     wb = openpyxl.Workbook(write_only=wo)
     # will include a blank sheet for sheets without a 'page view' list
-    logger.debug('writing to workbook')
+    logger.info('writing to workbook')
 
     if wo:
         for sheet in sheets:
             ws = wb.create_sheet(str(sheet))
             page_views = sheets[sheet]
             if len(page_views) > 0:
-                # Note this could cause omissions if row given as start is 'narrower' than
+                # Note will omit some header labels if the top row is 'narrower' than
                 # others -- i.e. doesn't have all the fields
+                # may want to add a check against the table width
                 ws.append([k for k in page_views[0].keys()])
                 for view in page_views:
-                    ws.append((str(view[k]) for k in view))
+                    #ws.append((str(view[k]) for k in view))
+                    ws.append(view[k] for k in view)
     else:
         for sheet in sheets:
             # logger.debug()(dir(sheets[sheet]))
@@ -109,7 +138,8 @@ def rewrite_sheets(sheets, out_file_name, extension='.xlsx', wo=True):
 
                     for view in page_views:
                         for col_num, col_name in enumerate(col_names):
-                            ws[get_column_letter(col_num + 1) + str(out_row)].value = str(view[col_name])
+                            #ws[get_column_letter(col_num + 1) + str(out_row)].value = str(view[col_name])
+                            ws[get_column_letter(col_num + 1) + str(out_row)].value = view[col_name]
                         out_row += 1
                 except IndexError as e:
                     logger.warning(str(e))
@@ -119,7 +149,7 @@ def rewrite_sheets(sheets, out_file_name, extension='.xlsx', wo=True):
     try:
 
         wb.save(out_file_name + extension)
-        logger.debug('written to workbook')
+        logger.info('written to workbook ' + out_file_name)
     except PermissionError:
         counter +=1
         wb.save(out_file_name + str(counter) + extension)
