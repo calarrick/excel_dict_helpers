@@ -6,6 +6,44 @@ from itertools import islice
 logger = logging.getLogger(__name__)
 
 
+def read_opened_sheet(sheet_object, start_row, *, has_headers=True):
+
+    sheet = sheet_object
+    p_views = []
+    headings = []
+    numbers = set()
+
+    with open('client-matter.txt') as f:
+        for line in f:
+            try:
+                numbers.add(float(line))
+            except ValueError:
+                continue
+
+    def check_cm(x, cm):
+        if isinstance(cm, float):
+            if ('client' or 'matter' or 'account') in x.lower():
+                cm = str(cm)
+            elif cm in numbers:
+                cm = str(cm)
+
+        return cm
+
+    if has_headers:
+        for num, row in enumerate(sheet.rows):
+            if num == start_row -1:
+                headings = [h.value for h in row]
+            if num >= start_row:
+                p_view = {headings[x]: check_cm(headings[x], row[x].value) for x in range(sheet.min_column-1, sheet.max_column)}
+                p_views.append(p_view)
+    else:
+        for row in islice(sheet.rows, start_row, sheet.max_row):
+            p_view = {get_column_letter(x+1): row[x].value for x in range(sheet.min_column-1, sheet.max_column)}
+            p_views.append(p_view)
+
+    return p_views
+
+
 def read_sheet(book, sheet, *, start_row=1, col_names = None,
                has_headers=True, data_only=True, ro=True):
     """"
@@ -32,42 +70,66 @@ def read_sheet(book, sheet, *, start_row=1, col_names = None,
     else:
         sheet = wb[sheet]
     p_views = []
-    letters = []
-    headings = []
-    numbers = set()
 
-    with open('client-matter.txt') as f:
-        for line in f:
-            try:
-                numbers.add(float(line))
-            except ValueError:
-                continue
-
-    def check_cm(x, cm):
-        if isinstance(cm, float):
-            if ('client' or 'matter' or 'account') in x.lower():
-                cm = str(cm)
-            elif cm in numbers:
-                cm = str(cm)
-
-        return cm
-
-    if ro and has_headers:
-        for num, row in enumerate(sheet.rows):
-            if num == start_row -1:
-                # for cell in row:
-                #     headings.append(cell.value)
-                headings = [h.value for h in row]
-            if num >= start_row:
-                #p_view = {headings[x]: row[x].value for x in range(sheet.min_column-1, sheet.max_column)}
-                p_view = {headings[x]: check_cm(headings[x], row[x].value) for x in range(sheet.min_column-1, sheet.max_column)}
-                p_views.append(p_view)
-    elif ro:
-        for row in islice(sheet.rows, start_row, sheet.max_row):
-            p_view = {get_column_letter(x+1): row[x].value for x in range(sheet.min_column-1, sheet.max_column)}
-            p_views.append(p_view)
+    if ro:
+        return read_opened_sheet(sheet, start_row)
+    # p_views = []
+    # letters = []
+    # headings = []
+    # numbers = set()
+    #
+    # with open('client-matter.txt') as f:
+    #     for line in f:
+    #         try:
+    #             numbers.add(float(line))
+    #         except ValueError:
+    #             continue
+    #
+    # def check_cm(x, cm):
+    #     if isinstance(cm, float):
+    #         if ('client' or 'matter' or 'account') in x.lower():
+    #             cm = str(cm)
+    #         elif cm in numbers:
+    #             cm = str(cm)
+    #
+    #     return cm
+    #
+    # if ro and has_headers:
+    #     for num, row in enumerate(sheet.rows):
+    #         if num == start_row -1:
+    #             # for cell in row:
+    #             #     headings.append(cell.value)
+    #             headings = [h.value for h in row]
+    #         if num >= start_row:
+    #             #p_view = {headings[x]: row[x].value for x in range(sheet.min_column-1, sheet.max_column)}
+    #             p_view = {headings[x]: check_cm(headings[x], row[x].value) for x in range(sheet.min_column-1, sheet.max_column)}
+    #             p_views.append(p_view)
+    # elif ro:
+    #     for row in islice(sheet.rows, start_row, sheet.max_row):
+    #         p_view = {get_column_letter(x+1): row[x].value for x in range(sheet.min_column-1, sheet.max_column)}
+    #         p_views.append(p_view)
 
     else:
+        numbers = set()
+
+        def check_cm(x, cm):
+            if isinstance(cm, float):
+                if ('client' or 'matter' or 'account') in x.lower():
+                    cm = str(cm)
+                elif cm in numbers:
+                    cm = str(cm)
+            return cm
+
+        with open('client-matter.txt') as f:
+            for line in f:
+                try:
+                    numbers.add(float(line))
+                except ValueError:
+                    continue
+
+        letters = []
+        headings = []
+
         if not col_names:
             for num, col in enumerate(sheet.columns):
                 col_lett = get_column_letter(num+1)
@@ -89,10 +151,10 @@ def read_sheet(book, sheet, *, start_row=1, col_names = None,
             p_views.append(p_view)
         logger.debug('workbook and sheet loaded')
 
-    if check_cm:
-        for entry in p_views:
-            for k in entry:
-                entry[k] = check_cm(k, entry[k])
+        if check_cm:
+            for entry in p_views:
+                for k in entry:
+                    entry[k] = check_cm(k, entry[k])
 
     return p_views
 
